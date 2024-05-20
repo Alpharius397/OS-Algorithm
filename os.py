@@ -1,3 +1,7 @@
+# Just initialize the class Page() : for page replacement algorithm or processScheduling() : for process scheduling
+# page =Page()
+# process = processScheduling()
+
 import copy
 import heapq
 
@@ -163,7 +167,7 @@ class processScheduling():
                 queue[task[i]['burst']].append(i)
 
     def SJF(self) -> dict[int,dict[str,int]]:
-        counter, task = 0,{i:self.task[i] for i in sorted(self.task,key=lambda x: (self.task[x]['arrive'],self.task[x]['burst'],x))}
+        counter, task = 0, {i:self.task[i] for i in sorted(self.task,key=lambda x: (self.task[x]['arrive'],self.task[x]['burst'],x))}
         minheap, done, queue = [], 0, {}
 
         while done<len(task):
@@ -180,7 +184,8 @@ class processScheduling():
             task[curr]['burst'] -= 1
 
             if task[curr]['burst']==0:
-                task[curr]['TAT'],task[curr]['wait'] = counter - task[curr]['arrive'], task[curr]['TAT'] - task[curr]['org']
+                task[curr]['TAT'] = counter - task[curr]['arrive'] 
+                task[curr]['wait'] = task[curr]['TAT'] - task[curr]['org']
                 done+=1
                 continue
 
@@ -215,7 +220,8 @@ class processScheduling():
             if task[curr]['burst']<=quantum:
                 counter+=task[curr]['burst']
                 self.display(counter,curr,task[curr]['burst'])
-                task[curr]['burst'], task[curr]['TAT'], task[curr]['wait'] = 0, counter - task[curr]['arrive'], task[curr]['TAT'] - task[curr]['org']
+                task[curr]['burst'], task[curr]['TAT'] = 0, counter - task[curr]['arrive']
+                task[curr]['wait'] = task[curr]['TAT'] - task[curr]['org']
                 completed.append(curr)
                 done+=1
                 continue
@@ -257,7 +263,7 @@ class processScheduling():
             
         else:
             for i in self.task:
-                print(f' Process P{i}: Arrive={self.task[i]['arrive']}, Burst={self.task[i]['burst']}.)')
+                print(f' Process P{i}: Arrive={self.task[i]['arrive']}, Burst={self.task[i]['burst']}.')
 
             choice=-1
 
@@ -291,12 +297,3 @@ class processScheduling():
                 else:
                     print(' Incorrect Choice!')
                 
-#page =Page()
-process = processScheduling()
-
-
-
-
-
-
-               
