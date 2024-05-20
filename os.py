@@ -95,7 +95,7 @@ class Page():
                 print(f' Page Hit = {ans['hit']} and Page Fault = {ans['fault']}')
             elif choice==3:
                 ans = self.optimal()
-                print(f' Page Hit = {ans['hit']} and Page Fault = {ans['fault']}')
+                print(f' Page Hit = {ans['hit']} and Page Fault = {ans['fault']}')           
             elif choice==4:
                 print(' Exiting....')
             else:
@@ -159,9 +159,11 @@ class processScheduling():
             self.taskThere(task,counter,queue,minheap)
             val = heapq.heappop(minheap) if minheap else False
             counter+=1
-            if not val: continue
+            if not val: 
+                self.display(counter,'NULL',1)
+                continue
             curr = queue[val].pop(0)
-
+            self.display(counter,curr,1)
             task[curr]['burst'] -= 1
 
             if task[curr]['burst']==0:
@@ -185,10 +187,10 @@ class processScheduling():
                 queue.append(i)
 
     def RoundRobin(self,quantum:int) -> dict[int,dict[str,int]]:
-        print(quantum)
         counter = 0
         completed = []
         queue = []
+        print(self.task)
         done=0
         task = sorted(self.task,key=lambda x: (self.task[x]['arrive']))
         task = {i:self.task[i] for i in task}
@@ -199,18 +201,24 @@ class processScheduling():
             
             if curr==float('inf'): 
                 counter+=1
+                self.display(counter,'NULL',1)
                 continue
-
+            
             if task[curr]['burst']<=quantum:
+
                 counter+=task[curr]['burst']
+                self.display(counter,curr,task[curr]['burst'])
                 task[curr]['burst'] = 0
                 completed.append(curr)
                 task[curr]['TAT'] = counter - task[curr]['arrive']
                 task[curr]['wait'] = task[curr]['TAT'] - task[curr]['org']
                 done+=1
+                
                 continue
 
+            
             counter+=quantum
+            self.display(counter,curr,quantum)
             task[curr]['burst'] -= quantum
 
         self.process(task)
@@ -248,24 +256,28 @@ class processScheduling():
             while choice!=4:
                 print('\n 1) FCFS Algorithm \n 2) SJF Algorithm \n 3) Round Robin Algorithm \n 4) Exit \n',end='')
                 choice=int(input(' Enter your Choice: '))
+                print()
                 if choice==1:
-                    print()
                     res = self.Average(self.FCFS())
+                    self.task = copy.deepcopy(self.org)
                     print(f' Average Waiting Time = {res['wait']:0.2f} and Average Turnaround Time = {res['TAT']:0.2f}')
-                    self.task = self.org
+                    self.counter = []
                 elif choice==2:
                     res = self.Average(self.SJF())
+                    self.task = copy.deepcopy(self.org)
                     print(f' Average Waiting Time = {res['wait']:0.2f} and Average Turnaround Time = {res['TAT']:0.2f}')
-                    self.task = self.org
+                    self.counter = []
                 elif choice==3:
                     quantum = int(input(' Enter the time quantum: '))
                     res = self.Average(self.RoundRobin(quantum))
                     print(f' Average Waiting Time = {res['wait']:0.2f} and Average Turnaround Time = {res['TAT']:0.2f}')
-                    self.task = self.org
+                    self.task = copy.deepcopy(self.org)
+                    self.counter = []
                 elif choice==4:
                     print(' Exiting....')
                 else:
                     print(' Incorrect Choice!')
+                
 
 
 
