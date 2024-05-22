@@ -1,7 +1,9 @@
-# Just initialize the class Page() : for page replacement algorithm or processScheduling() : for process scheduling
-# page =Page()
+# Just initialize the class Page() : for page replacement algorithm or processScheduling() : for process scheduling or diskScheduling() : disk scheduling
+# page = Page()
 # process = processScheduling()
-
+# disk = diskScheduling()
+from bisect import bisect_right
+from collections import defaultdict
 import copy
 import heapq
 
@@ -88,7 +90,7 @@ class Page():
         return ans
     
     def display(self,frames:list[int],current:int,status:str) -> None:
-        print(f' {current} => {[frames[i] if i<len(frames) else None for i in range(self.frame)]} {status}')
+        print(f" {current} => {[frames[i] if i<len(frames) else None for i in range(self.frame)]} {status}")
 
     def interface(self) -> None:
         self.frame = int(input(' Enter the number of frames: '))
@@ -101,15 +103,15 @@ class Page():
 
             if choice==1:
                 ans = self.fifo()
-                print(f' Page Hit = {ans['hit']} and Page Fault = {ans['fault']}')
+                print(f" Page Hit = {ans['hit']} and Page Fault = {ans['fault']}")
 
             elif choice==2:
                 ans = self.lru()
-                print(f' Page Hit = {ans['hit']} and Page Fault = {ans['fault']}')
+                print(f" Page Hit = {ans['hit']} and Page Fault = {ans['fault']}")
 
             elif choice==3:
                 ans = self.optimal()
-                print(f' Page Hit = {ans['hit']} and Page Fault = {ans['fault']}')     
+                print(f" Page Hit = {ans['hit']} and Page Fault = {ans['fault']}")     
 
             elif choice==4:
                 print(' Exiting....')
@@ -119,10 +121,20 @@ class Page():
 
 """
 class Memory():
-    def __init__(self,parts:list[float]=[],tasks:dict[str,float]={}) -> None:
+    def __init__(self,parts:list[int]=[],tasks:dict[str,int]={}) -> None:
         self.parts = parts
         self.tasks = tasks
-"""
+
+    def firstFit(self) -> None:
+        notAlloc = [i for i in self.parts]
+        for i in self.tasks:
+            for j in notAlloc:
+                if self.parts[j]<=self.tasks[i]:
+                    self.tasks[i] -= self.parts[j]
+                    self.parts[j]['allocated'] = i
+                    notAlloc.remove(j)
+        return self.parts
+"""""
 
 class processScheduling():
     def __init__(self) -> None:
@@ -130,7 +142,7 @@ class processScheduling():
 
     def display(self,counter:int,curr:int,times:int) -> None:
         for i in range(counter,counter+times):
-            self.counter.append(f'P{curr}' if curr!='NULL' else f'{curr}')
+            self.counter.append(f"P{curr}" if curr!='NULL' else f"{curr}")
 
         print(f' Counter = {counter}: {self.counter}')
 
@@ -237,7 +249,7 @@ class processScheduling():
         print()
         processes = {i:task[i] for i in sorted(task)}
         for i in processes:
-            print(f' Proccess P{i}: Total Waiting Time={processes[i]['wait']},Total Turnaround Time={processes[i]['TAT']}')
+            print(f" Proccess P{i}: Total Waiting Time={processes[i]['wait']},Total Turnaround Time={processes[i]['TAT']}")
         print()
 
     def Average(self,task:dict[int,dict[str,int]]) -> dict[str,float]:
@@ -263,7 +275,7 @@ class processScheduling():
             
         else:
             for i in self.task:
-                print(f' Process P{i}: Arrive={self.task[i]['arrive']}, Burst={self.task[i]['burst']}.')
+                print(f" Process P{i}: Arrive={self.task[i]['arrive']}, Burst={self.task[i]['burst']}.")
 
             choice=-1
 
@@ -275,19 +287,19 @@ class processScheduling():
                 if choice==1:
                     res = self.Average(self.FCFS())
                     self.task = copy.deepcopy(self.org)
-                    print(f' Average Waiting Time = {res['wait']:0.2f} and Average Turnaround Time = {res['TAT']:0.2f}')
+                    print(f" Average Waiting Time = {res['wait']:0.2f} and Average Turnaround Time = {res['TAT']:0.2f}")
                     self.counter = []
 
                 elif choice==2:
                     res = self.Average(self.SJF())
                     self.task = copy.deepcopy(self.org)
-                    print(f' Average Waiting Time = {res['wait']:0.2f} and Average Turnaround Time = {res['TAT']:0.2f}')
+                    print(f" Average Waiting Time = {res['wait']:0.2f} and Average Turnaround Time = {res['TAT']:0.2f}")
                     self.counter = []
 
                 elif choice==3:
                     quantum = int(input(' Enter the time quantum: '))
                     res = self.Average(self.RoundRobin(quantum))
-                    print(f' Average Waiting Time = {res['wait']:0.2f} and Average Turnaround Time = {res['TAT']:0.2f}')
+                    print(f" Average Waiting Time = {res['wait']:0.2f} and Average Turnaround Time = {res['TAT']:0.2f}")
                     self.task = copy.deepcopy(self.org)
                     self.counter = []
 
@@ -296,4 +308,145 @@ class processScheduling():
 
                 else:
                     print(' Incorrect Choice!')
-                
+
+class diskScheduling():
+    def __init__(self) -> None:
+        self.interface()
+    def dist(self,prev:int,next:int) -> int:
+        return abs(prev - next)
+    
+    def fcfs(self) -> dict[int,list[int]]:
+        queue,dis,head = [self.head], 0, self.head
+
+        for i in self.request:
+            dis += self.dist(head,i)
+            head = i
+            queue.append(i)
+
+        return {'total':dis, 'request':queue}
+    
+    def sstf(self) -> dict[int,list[int]]:
+        queue,dis=[self.head], 0
+
+        temp = sorted(self.request + [self.head])
+        index = temp.index(self.head)
+
+        while len(temp)>1:
+            head = temp.pop(index)
+            
+            if index==0:
+                dis += self.dist(head,temp[index])
+            
+            elif index==(len(temp)):
+                dis += self.dist(head,temp[index-1])
+                index-=1
+            
+            else:
+                l,r = temp[index-1], temp[index]
+
+                if abs(head - l) < abs(head - r):
+                    dis += self.dist(head,l)
+                    index-=1
+                else:
+                    dis += self.dist(head,r)
+            
+            head = temp[index]
+            queue.append(head)
+        
+        return {'total':dis, 'request':queue}
+    
+    def scan(self) -> dict[str,dict[int,list[int]]]:
+        lqueue,ldis,rqueue,rdis = [self.head], 0, [self.head], 0
+        temp = sorted(self.request)
+        index = bisect_right(temp,self.head)
+
+        ldis = self.dist(0,self.head) + self.dist(0,temp[-1])
+        lqueue = [self.head] + temp[:index][::-1] + [0] + temp[index:]
+
+        rdis = self.dist(self.diskEnd,self.head) + self.dist(self.diskEnd,temp[0])
+        rqueue = [self.head] + temp[index:] + [self.diskEnd] + temp[:index][::-1] 
+
+        return {'left':{'total':ldis, 'request':lqueue}, 'right':{'total':rdis, 'request':rqueue}}        
+    
+
+    def look(self) -> dict[str,dict[int,list[int]]]:
+        temp = sorted(self.request)
+        index = bisect_right(temp,self.head)
+
+        ldis = self.dist(temp[0],self.head) + self.dist(temp[0],temp[-1])
+        lqueue = [self.head] + temp[:index][::-1] + temp[index:]
+
+        rdis = self.dist(temp[-1],self.head) + self.dist(temp[-1],temp[0])
+        rqueue = [self.head] + temp[index:] + temp[:index] 
+
+        return {'left':{'total':ldis, 'request':lqueue}, 'right':{'total':rdis, 'request':rqueue}} 
+
+    def Cscan(self) -> dict[str,dict[int,list[int]]]:
+        temp = sorted(self.request)
+        index = bisect_right(temp,self.head)
+
+        ldis = self.dist(0,self.head) + self.diskEnd + self.dist(self.diskEnd,temp[index])
+        lqueue = [self.head] + temp[:index][::-1] + [0,self.diskEnd] + temp[index:][::-1]
+
+        rdis = self.dist(self.diskEnd,self.head) + self.diskEnd + self.dist(0,temp[index-1])
+        rqueue = [self.head] + temp[index:] + [self.diskEnd,0]+ temp[:index] 
+
+        return {'left':{'total':ldis, 'request':lqueue}, 'right':{'total':rdis, 'request':rqueue}}        
+    
+
+    def Clook(self) -> dict[str,dict[int,list[int]]]:
+        temp = sorted(self.request)
+        index = bisect_right(temp,self.head)
+
+        ldis = self.dist(temp[0],self.head) + self.dist(temp[-1],temp[0]) + self.dist(temp[-1],temp[index])
+        lqueue = [self.head] + temp[:index][::-1] + temp[index:][::-1]
+
+        rdis = self.dist(temp[-1],self.head) + self.dist(temp[0],temp[-1]) + self.dist(temp[0],temp[index-1])
+        rqueue = [self.head] + temp[index:] + temp[:index] 
+
+        return {'left':{'total':ldis, 'request':lqueue}, 'right':{'total':rdis, 'request':rqueue}}   
+      
+    def interface(self) -> None:
+        self.diskEnd = int(input(' Enter the disk size: ')) - 1
+
+        if self.diskEnd<0:
+            print(' Disk Size cannot be negative!')
+            return 
+        
+        self.request = [int(i) for i in input(' Enter the request queue: ').split()]
+        if min(self.request)<0 or max(self.request)>self.diskEnd:
+            print(f' The requests are out of bound (0,{self.diskEnd})!')
+            return
+        self.head = int(input(' Enter the current head position: '))
+
+        if self.head<0 or self.diskEnd>self.diskEnd:
+            print(f' The head is out of bound (0,{self.diskEnd})!')
+        print()
+        choice=-1
+        while choice!=7:
+            print('\n 1) FCFS Disk Scheduling\n 2) SSTF Disk Scheduling\n 3) SCAN Disk Scheduling\n 4) LOOK Disk Scheduling\n 5) CSCAN Disk Scheduling\n 6) CLOOK Disk Scheduling\n 7) Exit from menu\n')
+            choice=int(input(' Enter your choice: '))
+
+            if choice==1:
+                res = self.fcfs()
+                print(f" Total Overhead Movement: {res['total']} and Request queue: {res['request']}")
+            elif choice==2: 
+                res = self.sstf()
+                print(f" Total Overhead Movement: {res['total']} and Request queue: {res['request']}")
+            elif choice==3:
+                res = self.scan()
+                print(f" Total Overhead Movement: Left-Side = {res['left']['total']} and Request queue: {res['left']['request']}, Right-Side = {res['right']['total']} and Request queue: {res['right']['request']}")
+            elif choice==4:
+                res = self.look()
+                print(f" Total Overhead Movement: Left-Side = {res['left']['total']} and Request queue: {res['left']['request']}, Right-Side = {res['right']['total']} and Request queue: {res['right']['request']}")
+            elif choice==5:
+                res = self.Cscan()
+                print(f" Total Overhead Movement: Left-Side = {res['left']['total']} and Request queue: {res['left']['request']}, Right-Side = {res['right']['total']} and Request queue: {res['right']['request']}")
+            elif choice==6:
+                res = self.Clook()
+                print(f" Total Overhead Movement: Left-Side = {res['left']['total']} and Request queue: {res['left']['request']}, Right-Side = {res['right']['total']} and Request queue: {res['right']['request']}")
+            elif choice==7:
+                print(' Exiting....')
+            else:
+                print(' Invalid Choice!')
+
