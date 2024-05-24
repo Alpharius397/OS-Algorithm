@@ -422,6 +422,7 @@ class diskScheduling():
 
         if self.head<0 or self.diskEnd>self.diskEnd:
             print(f' The head is out of bound (0,{self.diskEnd})!')
+            return
         print()
         choice=-1
         while choice!=7:
