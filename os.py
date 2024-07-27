@@ -3,16 +3,17 @@
 # process = processScheduling()
 # disk = diskScheduling()
 
-from bisect import bisect_right
+from bisect import bisect_left,bisect_right
 from collections import defaultdict
 import copy
 import heapq
+from typing import List
 
 class Page():
-    def __init__(self,frame:int = 0,queue:list[int] = []) -> None:
+    def __init__(self,frame:int = 0,queue:List[int] = []) -> None:
         self.frame = frame 
         self.queue = queue
-        self.interface()
+        #self.interface()
     
     def fifo(self) -> dict[str,int]:
         frames = []
@@ -313,6 +314,7 @@ class processScheduling():
 class diskScheduling():
     def __init__(self) -> None:
         self.interface()
+        
     def dist(self,prev:int,next:int) -> int:
         return abs(prev - next)
     
@@ -357,53 +359,52 @@ class diskScheduling():
         return {'total':dis, 'request':queue}
     
     def scan(self) -> dict[str,dict[int,list[int]]]:
-        lqueue,ldis,rqueue,rdis = [self.head], 0, [self.head], 0
         temp = sorted(self.request)
-        index = bisect_right(temp,self.head)
+        indexL,indexR = bisect_left(temp,self.head), bisect_right(temp,self.head)
 
-        ldis = self.dist(0,self.head) + self.dist(0,temp[-1])
-        lqueue = [self.head] + temp[:index][::-1] + [0] + temp[index:]
+        ldis = self.dist(temp[0] if temp[-1]==self.head else 0,self.head) + (self.dist(0,temp[-1]) if (self.head<temp[-1]) else 0)
+        lqueue = [self.head] + temp[:indexR][::-1] + ([0] + temp[indexR:] if temp[:indexR] else [])
 
-        rdis = self.dist(self.diskEnd,self.head) + self.dist(self.diskEnd,temp[0])
-        rqueue = [self.head] + temp[index:] + [self.diskEnd] + temp[:index][::-1] 
+        rdis = self.dist(temp[-1] if temp[0]==self.head else self.diskEnd,self.head) + (self.dist(self.diskEnd,temp[0]) if (self.head>temp[0]) else 0)
+        rqueue = [self.head] + temp[indexL:] + ([self.diskEnd] + temp[:indexL][::-1] if temp[:indexL] else []) 
 
         return {'left':{'total':ldis, 'request':lqueue}, 'right':{'total':rdis, 'request':rqueue}}        
     
 
     def look(self) -> dict[str,dict[int,list[int]]]:
         temp = sorted(self.request)
-        index = bisect_right(temp,self.head)
+        indexL,indexR = bisect_left(temp,self.head), bisect_right(temp,self.head)
 
-        ldis = self.dist(temp[0],self.head) + self.dist(temp[0],temp[-1])
-        lqueue = [self.head] + temp[:index][::-1] + temp[index:]
-
-        rdis = self.dist(temp[-1],self.head) + self.dist(temp[-1],temp[0])
-        rqueue = [self.head] + temp[index:] + temp[:index] 
-
+        ldis = self.dist(temp[0],self.head) + (self.dist(temp[0],temp[-1]) if (temp[-1]>self.head)else 0)
+        lqueue = [self.head] + temp[:indexR][::-1] + (temp[indexR:] if temp[indexR:] else [])
+        
+        rdis = self.dist(temp[-1],self.head) + (self.dist(temp[-1],temp[0]) if (self.head>temp[0]) else 0)
+        rqueue = [self.head] + temp[indexL:] + (temp[:indexL][::-1] if temp[:indexL] else []) 
+        
         return {'left':{'total':ldis, 'request':lqueue}, 'right':{'total':rdis, 'request':rqueue}} 
 
     def Cscan(self) -> dict[str,dict[int,list[int]]]:
         temp = sorted(self.request)
-        index = bisect_right(temp,self.head)
+        indexL,indexR = bisect_left(temp,self.head), bisect_right(temp,self.head)
+        
+        ldis = self.dist(temp[0] if temp[-1]==self.head else 0,self.head) + (self.diskEnd+1 + self.dist(self.diskEnd,temp[indexR:][0]) if (temp[indexR:]) else 0 )
+        lqueue = [self.head] + temp[:indexR][::-1] + ([0,self.diskEnd] + temp[indexR:][::-1] if temp[indexR:] else [])
 
-        ldis = self.dist(0,self.head) + self.diskEnd + self.dist(self.diskEnd,temp[index])
-        lqueue = [self.head] + temp[:index][::-1] + [0,self.diskEnd] + temp[index:][::-1]
-
-        rdis = self.dist(self.diskEnd,self.head) + self.diskEnd + self.dist(0,temp[index-1])
-        rqueue = [self.head] + temp[index:] + [self.diskEnd,0]+ temp[:index] 
+        rdis = self.dist(temp[-1] if temp[0]==self.head else self.diskEnd,self.head) + (self.diskEnd+1 + self.dist(0,temp[:indexL][-1]) if (temp[:indexL]) else 0)
+        rqueue = [self.head] + temp[indexL:] + ([self.diskEnd,0]+ temp[:indexL] if temp[:indexL] else []) 
 
         return {'left':{'total':ldis, 'request':lqueue}, 'right':{'total':rdis, 'request':rqueue}}        
     
 
     def Clook(self) -> dict[str,dict[int,list[int]]]:
         temp = sorted(self.request)
-        index = bisect_right(temp,self.head)
+        indexL,indexR = bisect_left(temp,self.head), bisect_right(temp,self.head)
 
-        ldis = self.dist(temp[0],self.head) + self.dist(temp[-1],temp[0]) + self.dist(temp[-1],temp[index])
-        lqueue = [self.head] + temp[:index][::-1] + temp[index:][::-1]
+        ldis = self.dist(temp[0],self.head) + (self.dist(temp[-1],temp[0]) + self.dist(temp[-1],temp[indexR:][0]) if temp[indexR+1:] else 0)
+        lqueue = [self.head] + temp[:indexR][::-1] + (temp[indexR:][::-1] if temp[indexR:] else [])
 
-        rdis = self.dist(temp[-1],self.head) + self.dist(temp[0],temp[-1]) + self.dist(temp[0],temp[index-1])
-        rqueue = [self.head] + temp[index:] + temp[:index] 
+        rdis = self.dist(temp[-1],self.head) + (self.dist(temp[0],temp[-1]) + self.dist(temp[0],temp[:indexL][-1]) if temp[:indexL] else 0)
+        rqueue = [self.head] + temp[indexL:] + (temp[:indexL] if temp[:indexL] else [] ) 
 
         return {'left':{'total':ldis, 'request':lqueue}, 'right':{'total':rdis, 'request':rqueue}}   
       
@@ -422,7 +423,6 @@ class diskScheduling():
 
         if self.head<0 or self.diskEnd>self.diskEnd:
             print(f' The head is out of bound (0,{self.diskEnd})!')
-            return
         print()
         choice=-1
         while choice!=7:
@@ -451,4 +451,3 @@ class diskScheduling():
                 print(' Exiting....')
             else:
                 print(' Invalid Choice!')
-
